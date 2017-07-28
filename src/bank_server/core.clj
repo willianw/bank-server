@@ -11,37 +11,52 @@
       [:head
         [:meta {:http-equiv "Content-type"
                 :content "text/html; charset=utf-8"}]
-        [:title "adder"]]
+        [:title "Bank"]]
       [:body content])))
 
-(defn view-input []
+(defn view-operation-input []
   (view-layout
-    [:h2 "add two numbers"]
-    [:form {:method "post" :action "/"}
-      [:input.math {:type "text" :name "a"}] [:span.math " + "]
-      [:input.math {:type "text" :name "b"}] [:br]
-      [:input.action {:type "submit" :value "add"}]]))
+    [:h2 "Bank operation"]
+    [:form {:method "post" :action "/operation"}
+      [:span "Account:"]      [:input {:type "text" :name "account"}][:br]
+      [:span "Date"]          [:input {:type "text" :name "date"}][:br]
+      [:span "Operation:"]    [:select {:name "operation"}
+                                [:option {:value "Deposit"} "Deposit"]
+                                [:option {:value "Purchase"} "Purchase"]
+                                [:option {:value "Withdrawal"} "Withdrawal"]]
+      [:span "Value:"]        [:input {:type "text" :name "value"}][:br]
+      [:span "Description:"]  [:input {:type "text" :name "description"}][:br]
+      [:input.action {:type "submit" :value "OK"}]]))
 
-(defn view-output [a b sum]
+(defn transaction [{:keys [account operation value description]}]
+  [:p
+    [:span "account" account]
+    [:span "operation" operation]
+    [:span "value" value]
+    [:span "description" description]]
+  )
+
+(defn view-operation-output [account operation value description]
   (view-layout
-    [:h2 "two numbers added"]
-    [:p.math a " + " b " = " sum]
-    [:a.action {:href "/"} "add more numbers"]))
-
-(defn parse-input [a b]
-  [(Integer/parseInt a) (Integer/parseInt b)])
+    [:h2 "Operation successful!"]
+    [:p.math "Account: " account]
+    (map #(transaction %) [{:account account :operation operation :value value :description description}])
+    [:a.action {:href "/operation"} "New operation"]))
 
 (defroutes app
-  (GET "/" []
-    (view-input))
+  (GET "/operation" []
+    (view-operation-input))
 
-  (POST "/" [a b]
-    (let [[a b] (parse-input a b)
-          sum   (+ a b)]
-      (view-output a b sum))))
+  (POST "/operation" [account operation value description]
+    ;(let [[account operation value description] (parse-input account operation value description)]
+    ;Verificação da entrada-> lança erro se formato incorreto
 
-(defn -main
-  "I don't do a whole lot ... yet."
-  [& args]
-  (println "Hello, World!")
+    ;(dosync
+    ;  (alter transactions
+    ;    (conj % {:account account :operation operation :value value :description description}) %))
+    (view-operation-output account operation value description)))
+
+(defn -main [& args]
+  (def transactions (ref []))
+  (println "Hello, World!\n")
   (run-jetty app {:port 8080}))
