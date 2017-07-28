@@ -4,6 +4,8 @@
   (:use hiccup.page-helpers)
   (:use ring.adapter.jetty))
 
+(def transactions (ref []))
+
 (defn view-layout [& content]
   (html
     (doctype :xhtml-strict)
@@ -40,7 +42,8 @@
   (view-layout
     [:h2 "Operation successful!"]
     [:p.math "Account: " account]
-    (map #(transaction %) [{:account account :operation operation :value value :description description}])
+    (map #(transaction %) @transactions)
+    ;[{:account account :operation operation :value value :description description}])
     [:a.action {:href "/operation"} "New operation"]))
 
 (defroutes app
@@ -50,13 +53,10 @@
   (POST "/operation" [account operation value description]
     ;(let [[account operation value description] (parse-input account operation value description)]
     ;Verificação da entrada-> lança erro se formato incorreto
-
-    ;(dosync
-    ;  (alter transactions
-    ;    (conj % {:account account :operation operation :value value :description description}) %))
+    (dosync
+      (alter transactions conj {:account account :operation operation :value value :description description}))
     (view-operation-output account operation value description)))
 
 (defn -main [& args]
-  (def transactions (ref []))
   (println "Hello, World!\n")
   (run-jetty app {:port 8080}))
