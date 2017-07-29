@@ -30,20 +30,36 @@
       [:span "Description:"]  [:input {:type "text" :name "description"}][:br]
       [:input.action {:type "submit" :value "OK"}]]))
 
-(defn transaction [{:keys [account operation value description]}]
+(defn html-transaction [{:keys [account date operation value description]}]
   [:p
     [:span "account" account]
+    [:span "date" date]
     [:span "operation" operation]
     [:span "value" value]
     [:span "description" description]]
   )
 
-(defn view-operation-output [tr]
+(defn insert [lst x]
+  (println "insert" x "in" lst)
+  (cond
+    (empty? lst) (list x)
+    (> (Integer/parseInt (get (first lst) :date)) (Integer/parseInt (get x :date))) (conj lst x)
+    :else (conj (insert (rest lst) x) (first lst))))
+
+
+(defn view-operation-output [transaction]
+  ;(let [[account operation value description] (parse-input account operation value description)]
+  ;Verificação da entrada-> lança erro se formato incorreto
+  (println "before: " transactions)
+  (dosync
+    (alter transactions insert transaction))
+  (println "after: " transactions)
+
   (view-layout
     [:h2 "Operation successful!"]
-    [:p "Account: " (get tr :account)]
-    [:p "Date:    " (get tr :date)]
-    (map #(transaction %) @transactions)
+    [:p "Account: " (get transaction :account)]
+    [:p "Date:    " (get transaction :date)]
+    (map #(html-transaction %) @transactions)
     ;[{:account account :operation operation :value value :description description}])
     [:a.action {:href "/operation"} "New operation"]))
 
@@ -52,12 +68,7 @@
     (view-operation-input))
 
   (POST "/operation" [account date operation value description]
-    ;(let [[account operation value description] (parse-input account operation value description)]
-    ;Verificação da entrada-> lança erro se formato incorreto
-    (dosync
-      (alter transactions conj {:account account :date date :operation operation :value value :description description}))
-    (println transactions)
-    (view-operation-output (last @transactions))))
+    (view-operation-output {:account account :date date :operation operation :value value :description description})))
 
 (defn -main [& args]
   (println "Hello, World!\n")
