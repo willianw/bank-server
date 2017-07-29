@@ -46,21 +46,19 @@
     (> (Integer/parseInt (get (first lst) :date)) (Integer/parseInt (get x :date))) (conj lst x)
     :else (conj (insert (rest lst) x) (first lst))))
 
+(defn view-operation-display [transaction]
+  (map #([:span (name %) (get transaction %)]) (keys transaction)))
 
 (defn view-operation-output [transaction]
-  ;(let [[account operation value description] (parse-input account operation value description)]
   ;Verificação da entrada-> lança erro se formato incorreto
-  (println "before: " transactions)
   (dosync
     (alter transactions insert transaction))
-  (println "after: " transactions)
-
   (view-layout
     [:h2 "Operation successful!"]
     [:p "Account: " (get transaction :account)]
     [:p "Date:    " (get transaction :date)]
-    (map #(html-transaction %) @transactions)
-    ;[{:account account :operation operation :value value :description description}])
+    [:h2 "Previous operations"]
+    [:p (str @transactions)]
     [:a.action {:href "/operation"} "New operation"]))
 
 (defroutes app
