@@ -42,6 +42,7 @@
   (view-layout
     [:h2 "Operation successful!"]
     [:p "Account: " (get tr :account)]
+    [:p "Date:    " (get tr :date)]
     (map #(transaction %) @transactions)
     ;[{:account account :operation operation :value value :description description}])
     [:a.action {:href "/operation"} "New operation"]))
@@ -50,11 +51,11 @@
   (GET "/operation" []
     (view-operation-input))
 
-  (POST "/operation" [account operation value description]
+  (POST "/operation" [account date operation value description]
     ;(let [[account operation value description] (parse-input account operation value description)]
     ;Verificação da entrada-> lança erro se formato incorreto
     (dosync
-      (alter transactions conj {:account account :operation operation :value value :description description}))
+      (alter transactions conj {:account account :date date :operation operation :value value :description description}))
     (println transactions)
     (view-operation-output (last @transactions))))
 
