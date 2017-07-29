@@ -38,10 +38,10 @@
     [:span "description" description]]
   )
 
-(defn view-operation-output [account operation value description]
+(defn view-operation-output [tr]
   (view-layout
     [:h2 "Operation successful!"]
-    [:p.math "Account: " account]
+    [:p "Account: " (get tr :account)]
     (map #(transaction %) @transactions)
     ;[{:account account :operation operation :value value :description description}])
     [:a.action {:href "/operation"} "New operation"]))
@@ -55,7 +55,8 @@
     ;Verificação da entrada-> lança erro se formato incorreto
     (dosync
       (alter transactions conj {:account account :operation operation :value value :description description}))
-    (view-operation-output account operation value description)))
+    (println transactions)
+    (view-operation-output (last @transactions))))
 
 (defn -main [& args]
   (println "Hello, World!\n")
