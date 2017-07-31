@@ -12,9 +12,6 @@
     (> (Integer/parseInt (get (first lst) "date")) (Integer/parseInt (get x "date"))) (conj lst x)
     :else (conj (insert (rest lst) x) (first lst))))
 
-(defn view-operation-display [transaction]
-  (map #([:span (name %) (get transaction %)]) (keys transaction)))
-
 (defroutes app
   (GET "/operation" []
     (view-operation-input))
@@ -25,7 +22,24 @@
       (println (get transaction "description"))
       (dosync
         (alter transactions insert transaction))
-      (view-operation-output transaction @transactions))))
+      (view-operation-output transaction @transactions)))
+
+  (GET "/balance" []
+    (view-balance-input))
+
+  ; (POST "/balance" [account p q r s]
+  ;   (let [account (get (get req :params) "account")]
+  ;     (view-balance-output (reduce (fn [transaction, x]
+  ;                                     (if (contains? {"Deposit", "Salary", "Credit"} (transaction "operation")
+  ;                                       (concat x ", " (transaction "value"))
+  ;                                       (concat "-" x ", " (transaction "value"))
+  ;                                     )))
+  ;                           0 (filter #(= account (get % "account")) @transactions))))))
+
+  (POST "/balance" req
+    (let [account (get (get req :params) "account")]
+    (view-balance-output (map (fn [%]
+                            (get % "operation")) (filter #(= account (get % "account")) @transactions))))))
 
 (defn -main [& args]
   (println "Hello, World!\n")
