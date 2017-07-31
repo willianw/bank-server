@@ -37,9 +37,14 @@
   ;                           0 (filter #(= account (get % "account")) @transactions))))))
 
   (POST "/balance" req
-    (let [account (get (get req :params) "account")]
-    (view-balance-output (map (fn [%]
-                            (get % "operation")) (filter #(= account (get % "account")) @transactions))))))
+    (let [account (get (get req :params) "account")
+         value (reduce + 0 (map (fn [%]
+                                   ;Temporary Integer/parseInt
+                                   (let [value (Integer/parseInt (get % "value"))]
+                                     (if (contains? (set '("Deposit" "Salary" "Credit")) (get % "operation"))
+                                     value
+                                     (* -1 value)))) (filter #(= account (get % "account")) @transactions)))]
+    (view-balance-output (hash-map "account" account "value" value)))))
 
 (defn -main [& args]
   (println "Hello, World!\n")
