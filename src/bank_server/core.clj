@@ -2,6 +2,7 @@
   (:use compojure.core)
   (:use ring.adapter.jetty)
   (:use bank-server.views)
+  (:require [clojure.data.json :as json])
 )
 
 (def transactions (ref []))
@@ -113,7 +114,8 @@
                                       (conj list (hash-map "date" day "transactions" (filter #(= 0 (.compareTo (% "date") day)) filter1)))))
                                   [] days)]
               (do
-                (view-statement-output (str statements))))
+                (println statements)
+                (view-statement-output statements)))
             (view-statement-input "Houve um erro")
           )))
 )
