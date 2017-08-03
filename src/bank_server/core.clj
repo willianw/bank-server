@@ -16,24 +16,29 @@
       :else (conj (insert (rest lst) x) (first lst)))
   ))
 
-(defn check [field transaction]
+(defn check [field_name type transaction]
   (try
-    (case field
-      "account" (Integer/parseInt (transaction "account"))
-      ;"date" (parse (formatters :date) (transaction "date"))
-      "date" (Integer/parseInt (transaction "date"))
-      "operation" (transaction "operation")
-      "value" (Float/parseFloat (transaction "value"))
-      "description" (transaction "description")
-    )
+    (let [value (transaction field_name)]
+      (case type
+        "integer" (Integer/parseInt value)
+        "float" (Float/parseFloat value)
+        "date" (Integer/parseInt value)
+        ;"date" (parse (formatters :date) (transaction "date"))
+        "text" value
+      ))
   (catch Exception e
     (do (.printStackTrace e)
     false)))
 )
 
 (defn check_operation [transaction]
-  (let [all_fields (reduce #(assoc %1 %2 (check %2 transaction))
-                    {} (list "account" "date" "operation" "value" "description"))]
+  (let [all_fields (hash-map
+                        "account"       (check "account" "integer" transaction)
+                        "date"          (check "date" "date" transaction)
+                        "operation"     (check "operation" "text" transaction)
+                        "value"         (check "value" "float" transaction)
+                        "description"   (check "description" "text" transaction)
+                        )]
     (do
       ;(println "all_fields" all_fields)
       (list (reduce #(and %1 (not (empty? %2))) true all_fields) all_fields)
@@ -63,16 +68,20 @@
   (GET "/balance" []
     (view-balance-input))
 
+;TO-DO: contar apenas transações anteriores a hoje
   (POST "/balance" req
-    (let [account (check "account" (get req :params))
+    (let [account (check "account" "integer" (get req :params))
          value (reduce + 0 (map
            (fn [%]
              (let [value (get % "value")
                   date (get % "date")]
-               (if (contains? (set '("Deposit" "Salary" "Credit")) (get % "operation"))
-               value
-               (* -1 value))
-            ))
+                ;TO-DO: trocar a comparação abaixo usando date
+                (if (<= date 13)
+                  (if (contains? (set '("Deposit" "Salary" "Credit")) (get % "operation"))
+                  value
+                  (* -1 value))
+                  0)
+              ))
             (filter #(= account (get % "account")) @transactions)))]
       (if account
         (view-balance-output (hash-map "account" account "value" value))
@@ -85,7 +94,11 @@
     (view-statement-input))
 
   (POST "/statement" req
-    (let [params (get req :params)]
+    (let [params (get req :params)
+          account (check "account" "integer" params)
+          initial (check "initial" "date" params)
+          final   (check "final" "date" params)]
+
       (view-statement-output params)))
 )
 
