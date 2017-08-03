@@ -80,7 +80,8 @@
 
   (POST "/statement" req
     (let [params (get req :params)]
-      (view-statement-output params))))
+      (view-statement-output params)))
+)
 
 (defn -main [& args]
   (println "Hello, World!\n")
