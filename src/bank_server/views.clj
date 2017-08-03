@@ -18,8 +18,8 @@
     [:form {:method "post" :action "/operation"}
     ; Trocar :value por :placeholder
       [:span "Account:"]      [:input {:type "text" :name "account" :value "1000" :pattern "[0-9]{4}" :title "Formato correto: [0-9]{4}"}][:br]
-      ;[:span "Date"]          [:input {:type "text" :name "date"    :value "12/10/2016" :pattern "[0-9]{2}/[0-9]{2}/[0-9]{4}" :title "Formato correto: [0-9]{2}-[0-9]{2}-[0-9]{4}"}][:br]
-      [:span "Date"]          [:input {:type "text" :name "date"    :value "12" :pattern "[0-9]+" :title "Formato correto: [0-9]+"}][:br]
+      [:span "Date"]          [:input {:type "text" :name "date"    :value "12/10/2016" :pattern "[0-9]{2}/[0-9]{2}/[0-9]{4}" :title "Formato correto: [0-9]{2}/[0-9]{2}/[0-9]{4}"}][:br]
+      ;[:span "Date"]          [:input {:type "text" :name "date"    :value "12" :pattern "[0-9]+" :title "Formato correto: [0-9]+"}][:br]
       [:span "Operation:"]    [:select {:name "operation"}
                                 [:option {:value "Deposit"} "Deposit"]
                                 [:option {:value "Salary"} "Salary"]
@@ -57,8 +57,8 @@
   (view-layout
     [:form {:method "post" :action "/statement"}
       [:span "Account:      "]      [:input {:type "text" :name "account" :value "1000"}][:br]
-      [:span "Initial date: "]      [:input {:type "text" :name "initial" :value "1"}][:br]
-      [:span "Final date:   "]      [:input {:type "text" :name "final" :value "31"}][:br]
+      [:span "Initial date: "]      [:input {:type "text" :name "initial"    :value "12/10/2016" :pattern "[0-9]{2}/[0-9]{2}/[0-9]{4}" :title "Formato correto: [0-9]{2}/[0-9]{2}/[0-9]{4}"}][:br]
+      [:span "Final date:   "]      [:input {:type "text" :name "final"    :value "15/10/2016" :pattern "[0-9]{2}/[0-9]{2}/[0-9]{4}" :title "Formato correto: [0-9]{2}/[0-9]{2}/[0-9]{4}"}][:br]
       [:input.action {:type "submit" :value "OK"}]]
     [:p warning]))
 

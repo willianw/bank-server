@@ -11,7 +11,6 @@
                   [ring/ring-jetty-adapter "0.2.5"]
                   [compojure "0.4.0"]
                   [hiccup "0.2.6"]
-                  ;[clj-time "0.14.0"]
                 ]
   :main ^:skip-aot bank-server.core
   :target-path "target/%s"

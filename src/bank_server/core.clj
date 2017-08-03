@@ -1,7 +1,6 @@
 (ns bank-server.core
   (:use compojure.core)
   (:use ring.adapter.jetty)
-  ;(:use clj-time.format)
   (:use bank-server.views)
 )
 
@@ -12,18 +11,19 @@
     (println "insert" x "into" lst)
     (cond
       (empty? lst) (list x)
-      (> (get (first lst) "date") (get x "date")) (conj lst x)
+      (.after (get (first lst) "date") (get x "date")) (conj lst x)
       :else (conj (insert (rest lst) x) (first lst)))
   ))
 
 (defn check [field_name type transaction]
+  (println "check" field_name type transaction)
   (try
     (let [value (transaction field_name)]
       (case type
         "integer" (Integer/parseInt value)
         "float" (Float/parseFloat value)
-        "date" (Integer/parseInt value)
-        ;"date" (parse (formatters :date) (transaction "date"))
+        ;"date" (Integer/parseInt value)
+        "date" (.parse (java.text.SimpleDateFormat. "dd/MM/yyyy") value)
         "text" value
       ))
   (catch Exception e
@@ -45,6 +45,11 @@
     )
   )
 )
+
+(defn tomorrow []
+  (let [today (java.util.Calendar/getInstance)]
+    (.add today java.util.Calendar/DAY_OF_YEAR 1)
+  (.getTime today)))
 
 
 (defroutes app
@@ -76,7 +81,7 @@
              (let [value (get % "value")
                   date (get % "date")]
                 ;TO-DO: trocar a comparação abaixo usando date
-                (if (<= date 13)
+                (if (.before date (.getTime (java.util.Calendar/getInstance)))
                   (if (contains? (set '("Deposit" "Salary" "Credit")) (get % "operation"))
                   value
                   (* -1 value))
@@ -94,21 +99,23 @@
     (view-statement-input))
 
   (POST "/statement" req
+    (println req)
     (let [params (get req :params)
           account (check "account" "integer" params)
           initial (check "initial" "date" params)
-          final   (check "final" "date" params)
-          days    (distinct (map #(% "date") @transactions))
-          filter1 (filter #(and (> (% "date") initial) (< (% "date") final)) @transactions)
-          list    (reduce (fn [list, day]
-                            (do
-                              (println "filter2 in " day (filter #(= (% "date") day) filter1))
-                              (conj list (hash-map "date" day "transactions" (filter #(= (% "date") day) filter1)))))
-                          [] days)]
-      (do
-        (println "days" days)
-        (println "filter1" filter1)
-        (view-statement-output (str list)))))
+          final   (check "final" "date" params)]
+          (println "account" account "initial" initial "final" final)
+          (if (and account initial final)
+            (let [days    (distinct (map #(% "date") @transactions))
+                  filter1 (filter #(and (.after (% "date") initial) (.before (% "date") final)) @transactions)
+                  statements (reduce (fn [list, day]
+                                    (do
+                                      (conj list (hash-map "date" day "transactions" (filter #(= 0 (.compareTo (% "date") day)) filter1)))))
+                                  [] days)]
+              (do
+                (view-statement-output (str statements))))
+            (view-statement-input "Houve um erro")
+          )))
 )
 
 (defn -main [& args]

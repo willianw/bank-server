@@ -1,5 +1,5 @@
 complete: project.clj src/*
-	lein deps
+	lein -U deps
 	lein run
 
 clear:
