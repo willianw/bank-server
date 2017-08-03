@@ -97,9 +97,18 @@
     (let [params (get req :params)
           account (check "account" "integer" params)
           initial (check "initial" "date" params)
-          final   (check "final" "date" params)]
-
-      (view-statement-output params)))
+          final   (check "final" "date" params)
+          days    (distinct (map #(% "date") @transactions))
+          filter1 (filter #(and (> (% "date") initial) (< (% "date") final)) @transactions)
+          list    (reduce (fn [list, day]
+                            (do
+                              (println "filter2 in " day (filter #(= (% "date") day) filter1))
+                              (conj list (hash-map "date" day "transactions" (filter #(= (% "date") day) filter1)))))
+                          [] days)]
+      (do
+        (println "days" days)
+        (println "filter1" filter1)
+        (view-statement-output (str list)))))
 )
 
 (defn -main [& args]
