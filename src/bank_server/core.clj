@@ -2,6 +2,9 @@
   (:use compojure.core)
   (:use ring.adapter.jetty)
   (:use bank-server.views)
+  (:require [clojure.data.json :as json])
+  (:require [clj-time.core :as time])
+  (:require [clj-time.format :as time-format])
 )
 
 (def transactions (ref []))
@@ -11,7 +14,7 @@
     (println "insert" x "into" lst)
     (cond
       (empty? lst) (list x)
-      (.after (get (first lst) "date") (get x "date")) (conj lst x)
+      (time/after? (get (first lst) "date") (get x "date")) (conj lst x)
       :else (conj (insert (rest lst) x) (first lst)))
   ))
 
@@ -23,7 +26,7 @@
         "integer" (Integer/parseInt value)
         "float" (Float/parseFloat value)
         ;"date" (Integer/parseInt value)
-        "date" (.parse (java.text.SimpleDateFormat. "dd/MM/yyyy") value)
+        "date" (time-format/parse (time-format/formatter "dd/MM/yyyy") value)
         "text" value
       ))
   (catch Exception e
@@ -45,12 +48,6 @@
     )
   )
 )
-
-(defn tomorrow []
-  (let [today (java.util.Calendar/getInstance)]
-    (.add today java.util.Calendar/DAY_OF_YEAR 1)
-  (.getTime today)))
-
 
 (defroutes app
   (GET "/operation" []
@@ -81,7 +78,7 @@
              (let [value (get % "value")
                   date (get % "date")]
                 ;TO-DO: trocar a comparação abaixo usando date
-                (if (.before date (.getTime (java.util.Calendar/getInstance)))
+                (if (time/before? date (time/now))
                   (if (contains? (set '("Deposit" "Salary" "Credit")) (get % "operation"))
                   value
                   (* -1 value))
@@ -107,13 +104,13 @@
           (println "account" account "initial" initial "final" final)
           (if (and account initial final)
             (let [days    (distinct (map #(% "date") @transactions))
-                  filter1 (filter #(and (.after (% "date") initial) (.before (% "date") final)) @transactions)
+                  filter1 (filter #(and (time/after? (% "date") initial) (time/before? (% "date") final)) @transactions)
                   statements (reduce (fn [list, day]
                                     (do
-                                      (conj list (hash-map "date" day "transactions" (filter #(= 0 (.compareTo (% "date") day)) filter1)))))
+                                      (conj list (hash-map "date" day "transactions" (filter #(time/equal? (% "date") day) filter1)))))
                                   [] days)]
               (do
-                (view-statement-output (str statements))))
+                (view-statement-output (str statements "Will" (json/write-str statements)))))
             (view-statement-input "Houve um erro")
           )))
 )
