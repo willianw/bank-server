@@ -8,34 +8,39 @@
 (def transactions (ref []))
 
 (defn insert [lst x]
-  (cond
-    (empty? lst) (list x)
-    (> (get (first lst) "date") (get x "date")) (conj lst x)
-    :else (conj (insert (rest lst) x) (first lst))))
+  (do
+    (println "insert" x "into" lst)
+    (cond
+      (empty? lst) (list x)
+      (> (get (first lst) "date") (get x "date")) (conj lst x)
+      :else (conj (insert (rest lst) x) (first lst)))
+  ))
 
-(defn check_operation [transaction]
+(defn check [field transaction]
   (try
-    [true (hash-map
+    (case field
       "account" (Integer/parseInt (transaction "account"))
       ;"date" (parse (formatters :date) (transaction "date"))
       "date" (Integer/parseInt (transaction "date"))
       "operation" (transaction "operation")
       "value" (Float/parseFloat (transaction "value"))
       "description" (transaction "description")
-    )]
+    )
   (catch Exception e
     (do (.printStackTrace e)
-    [false (str (.toString e))])))
+    false)))
 )
 
-(defn check_balance [transaction]
-  (let [account (get transaction "account")]
-    (try
-      (Integer/parseInt account)
-    (catch Exception e
-      false))
+(defn check_operation [transaction]
+  (let [all_fields (reduce #(assoc %1 %2 (check %2 transaction))
+                    {} (list "account" "date" "operation" "value" "description"))]
+    (do
+      ;(println "all_fields" all_fields)
+      (list (reduce #(and %1 (not (empty? %2))) true all_fields) all_fields)
+    )
   )
 )
+
 
 (defroutes app
   (GET "/operation" []
@@ -59,14 +64,15 @@
     (view-balance-input))
 
   (POST "/balance" req
-    (let [account (check_balance (get req :params))
+    (let [account (check "account" (get req :params))
          value (reduce + 0 (map
            (fn [%]
-             ;Temporary Integer/parseInt
-             (let [value (get % "value")]
+             (let [value (get % "value")
+                  date (get % "date")]
                (if (contains? (set '("Deposit" "Salary" "Credit")) (get % "operation"))
                value
-               (* -1 value))))
+               (* -1 value))
+            ))
             (filter #(= account (get % "account")) @transactions)))]
       (if account
         (view-balance-output (hash-map "account" account "value" value))
