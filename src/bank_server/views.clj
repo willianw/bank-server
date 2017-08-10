@@ -1,6 +1,8 @@
 (ns bank-server.views
   (:use hiccup.core)
-  (:use hiccup.page-helpers))
+  (:use hiccup.page-helpers)
+  (:require [clojure.data.json :as json])
+  (:require [clj-time.format :as time-format]))
 
 (defn view-layout [& content]
   (html
@@ -15,7 +17,7 @@
 (defn view-operation-input [& warning]
   (view-layout
     [:h2 "Bank operation"]
-    [:form {:method "post" :action "/operation"}
+    [:form {:method "post" :action "/operation" :enctype "application/json"}
     ; Trocar :value por :placeholder
       [:span "Account:"]      [:input {:type "text" :name "account" :value "1000" :pattern "[0-9]{4}" :title "Formato correto: [0-9]{4}"}][:br]
       [:span "Date"]          [:input {:type "text" :name "date"    :value "12/10/2016" :pattern "[0-9]{2}/[0-9]{2}/[0-9]{4}" :title "Formato correto: [0-9]{2}/[0-9]{2}/[0-9]{4}"}][:br]
@@ -45,22 +47,37 @@
 
 (defn view-balance-input [& warning]
   (view-layout
-    [:form {:method "post" :action "/balance"}
+    [:form {:method "post" :action "/balance" :enctype "application/json"}
       [:span "Account:"]      [:input {:type "text" :name "account" :value "1000"}][:br]
       [:input.action {:type "submit" :value "OK"}]]
     [:p warning]))
 
 (defn view-balance-output [text]
-  (html text))
+  (html (json/write-str text)))
 
 (defn view-statement-input [& warning]
   (view-layout
-    [:form {:method "post" :action "/statement"}
+    [:form {:method "post" :action "/statement" :enctype "application/json"}
       [:span "Account:      "]      [:input {:type "text" :name "account" :value "1000"}][:br]
       [:span "Initial date: "]      [:input {:type "text" :name "initial"    :value "12/10/2016" :pattern "[0-9]{2}/[0-9]{2}/[0-9]{4}" :title "Formato correto: [0-9]{2}/[0-9]{2}/[0-9]{4}"}][:br]
       [:span "Final date:   "]      [:input {:type "text" :name "final"    :value "15/10/2016" :pattern "[0-9]{2}/[0-9]{2}/[0-9]{4}" :title "Formato correto: [0-9]{2}/[0-9]{2}/[0-9]{4}"}][:br]
       [:input.action {:type "submit" :value "OK"}]]
     [:p warning]))
 
+(defn to-string [key value]
+	(if (= (type value) org.joda.time.DateTime)
+		(time-format/unparse (time-format/formatters :date) value)
+		value))
+
 (defn view-statement-output [text]
-  (html text))
+	(html (json/write-str text)))
+
+(defn view-debt-input [& warning]
+	(view-layout
+	  [:form {:method "post" :action "/debt" :enctype "application/json"}
+	    [:span "Account:"]      [:input {:type "text" :name "account" :value "1000"}][:br]
+	    [:input.action {:type "submit" :value "OK"}]]
+	  [:p warning]))
+
+(defn view-debt-output [text]
+	(html text))

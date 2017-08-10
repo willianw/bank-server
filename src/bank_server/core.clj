@@ -2,7 +2,6 @@
 	(:use compojure.core)
 	(:use ring.adapter.jetty)
 	(:use bank-server.views)
-	(:require [clojure.data.json :as json])
 	(:require [clj-time.core :as time])
 	(:require [clj-time.format :as time-format]))
 
@@ -16,7 +15,7 @@
 				:else (conj (insert (rest lst) x) (first lst)))))
 
 (defn check [field_name type transaction]
-	(println "check" field_name type transaction)
+	;(println "check" field_name type transaction)
 	(try
 		(let [value (transaction field_name)]
 		(case type
@@ -43,16 +42,24 @@
 			(list (reduce #(and %1 (not (empty? %2))) true all_fields) all_fields))))
 
 (defn balance [account time transactions]
-	(reduce + 0 (map (fn [%]
-			(let [value (get % "value")
-				date (get % "date")]
-				;TO-DO: trocar a comparação abaixo usando date
-				(if (time/before? date time)
-				(if (contains? (set '("Deposit" "Salary" "Credit")) (get % "operation"))
-				value
-				(* -1 value))
-				0)))
-			(filter #(= account (get % "account")) transactions))))
+	(reduce (fn [sum transaction]
+				(let	[value (transaction "value")
+						delta	(if (contains? (set '("Deposit" "Salary" "Credit")) (transaction "operation")) value (* -1 value))]
+						(+ sum delta)))
+			0 (filter #(and (= account (get % "account")) (time/before? (get % "date") time)) transactions)))
+
+(defn statements [transactions account & [initial final]]
+	(let	[days	(distinct (map #(% "date") transactions))
+			filter1	(if (not (or initial final))
+						transactions
+						(filter #(time/within? (time/interval initial final)) transactions))]
+			(reduce (fn	[list day]
+				(conj list (hash-map	"date" (time-format/unparse (time-format/formatter :date) day)
+										"transactions" (filter #(time/equal? (get % "date") day) filter1)
+										"balance" (balance account day transactions))))
+				(list) days)
+	)
+)
 
 (defroutes app
 	(GET "/operation" []
@@ -87,20 +94,39 @@
 				account (check "account" "integer" params)
 				initial (check "initial" "date" params)
 				final   (check "final" "date" params)]
-			;(println "account" account "initial" initial "final" final)
-			(if (and account initial final)
-				(let	[days	(distinct (map #(% "date") @transactions))
-						filter1	(filter #(and (time/after? (% "date") initial) (time/before? (% "date") final)) @transactions)
-						statements (reduce (fn	[list, day]
-												(do (conj list (hash-map	"date" day
-																			"transactions" (filter #(time/equal? (% "date") day) filter1)
-																			"balance" (balance account day @transactions)))))
-									[] days)]
-					(do
-						(view-statement-output statements)))
-						(view-statement-input "Houve um erro")
-						)))
-				)
+		(if (and account initial final)
+			(do (map #(println %) @transactions)
+			(view-statement-output (statements @transactions account initial final)))
+			(view-statement-input "Houve um erro"))
+		))
+
+	(GET "/debt" []
+		(view-debt-input))
+
+	(POST "/debt" req
+		(let [account (check "account" "integer" (get req :params))]
+			(if account
+				(view-debt-output (reduce (fn [list statement]
+						(let	[value (get statement "balance")
+								date (get statement "date")
+								last (last statement)
+								rest (drop-last statement)
+								period {:principal value :start date}]
+							(do
+								(println "value" value)
+								(println "date" date)
+							(cond
+								(and (< value 0) (contains? (last list) :end)) (conj statement period)
+								(and (< value 0) (not (empty? list)) (not (contains? (last list) :end)) (conj (conj rest (assoc last :end date)) period))
+								(and (> value 0) (not (empty? list)) (not (contains? (last list) :end)) (conj rest (assoc last :end date)))
+							))
+						)
+					) (list) (statements @transactions account)))
+				(view-debt-input "Houve um erro")
+			)
+		)
+	)
+)
 
 (defn -main [& args]
 	(println "Hello, World!\n")
